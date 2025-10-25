@@ -59,6 +59,11 @@ def book_list(request):
 
     books = Book.objects.all()
 
+    query = request.GET.get('q', '')
+    available_only = request.GET.get('available', '') == 'on'
+
+    books = Book.objects.all()
+
     if query:
         books = books.filter(
             title__icontains=query
@@ -70,6 +75,8 @@ def book_list(request):
 
     if available_only:
         books = books.filter(availability=True)
+
+
 
     paginator = Paginator(books, 5)
     page_number = request.GET.get('page')
@@ -107,3 +114,22 @@ def delete_book(request, book_id):
     book = get_object_or_404(Book, id=book_id)
     book.delete()
     return redirect('all-book')
+
+@login_required(login_url='login')
+def update_book(request, book_id):
+    if not request.user.is_superuser:
+        messages.error(request, "Access denied! Only admins can update books.")
+        return redirect('all-book')
+
+    book = get_object_or_404(Book, id=book_id)
+
+    if request.method == 'POST':
+        form = BookForm(request.POST, instance=book)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Book updated successfully!")
+            return redirect('all-book')
+    else:
+        form = BookForm(instance=book)
+
+    return render(request, 'add_book.html', {'form': form, 'update': True})
