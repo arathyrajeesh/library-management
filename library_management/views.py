@@ -8,6 +8,9 @@ from .models import Book
 from .forms import BookForm
 
 
+def home(request):
+    return render(request,'home.html')
+
 def register_user(request):
     if request.method == 'POST':
         username = request.POST.get('username')
