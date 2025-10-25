@@ -41,7 +41,10 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('all-book')
+            if user.is_superuser:
+                return redirect('all-book')     
+            else:
+                return redirect('user-books')   
         else:
             messages.error(request, "Invalid username or password")
     return render(request, 'login.html')
@@ -51,6 +54,34 @@ def user_logout(request):
     logout(request)
     return redirect('login')
 
+@login_required(login_url='login')
+def user_books(request):
+    query = request.GET.get('q', '')
+    available_only = request.GET.get('available', '') == 'on'
+
+    books = Book.objects.all()
+
+    if query:
+        books = books.filter(
+            title__icontains=query
+        ) | books.filter(
+            author__icontains=query
+        ) | books.filter(
+            category__icontains=query
+        )
+
+    if available_only:
+        books = books.filter(availability=True)
+
+    paginator = Paginator(books, 5)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'user/all_books.html', {
+        'page_obj': page_obj,
+        'query': query,
+        'available_only': available_only,
+    })
 
 @login_required(login_url='login')
 def book_list(request):
